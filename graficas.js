@@ -3,50 +3,38 @@ const myChart = echarts.init(chartDom, 'dark');
 
 const seleccion = document.getElementById('seleccion');
 
-const v0I = document.getElementById('v0Input');
-const anguloI = document.getElementById('anguloInput');
-const y0I = document.getElementById('y0Input');
-const a0I = document.getElementById('a0Input');
-const t0I = document.getElementById('t0Input');
-
-const btnSimular = document.getElementById('btnSimular');
-
 const a0 = document.getElementById('a0');
 const v0 = document.getElementById('v0');
 const angulo = document.getElementById('angulo');
 const y0 = document.getElementById('y0');
 const t0 = document.getElementById('t0');
 
-let seleccionado = false;
-
-seleccion.addEventListener('change', () => {
+function ajustarFormulario() {
     const tipoMovimiento = seleccion.value;
-    tipoMovimientoSeleccionado = tipoMovimiento;
 
-    if (tipoMovimiento === 'unaDimension') {
-        y0I.style.display = 'none';
-        anguloI.style.display = 'none';
+    document.querySelectorAll('.input-group').forEach(group => {
+        group.classList.add('hidden');
+    });
 
-        a0.disabled = false;
-        seleccionado = false;
-        a0.value = 0;
-    }
-    else if (tipoMovimiento === 'dosDimensiones') {
-        y0I.style.display = 'block';
-        anguloI.style.display = 'block';
-
-
-        seleccionado = true;
-        a0.value = 9.81;
-        a0.disabled = true;
+    if (tipoMovimiento === "mru") {
+        mostrarCampos(['.campo-velocidad', '.campo-tiempo']);
+    } else if (tipoMovimiento === "mrua") {
+        mostrarCampos(['.campo-velocidad', '.campo-tiempo', '.campo-aceleracion']);
+        document.getElementById("a0").value = 0;
+    } else if (tipoMovimiento === "caidaLibre") {
+        mostrarCampos(['.campo-tiempo', '.campo-altura']);
+    } else if (tipoMovimiento === "tiroSemiparabólico" || tipoMovimiento === "tiroParabólico") {
+        mostrarCampos(['.campo-velocidad', '.campo-angulo', '.campo-altura', '.campo-tiempo']);
     }
 
-    v0I.style.display = 'block';
-    t0I.style.display = 'block';
-    a0I.style.display = 'block';
-    btnSimular.style.display = 'block';
+    document.getElementById("btnSimular").classList.remove("hidden")
+}
 
-});
+function mostrarCampos(campos) {
+    campos.forEach(sel => {
+        document.querySelector(sel).classList.remove("hidden");
+    })
+}
 
 // Función para calcular los puntos matemáticos en el movimiento en una dimensión
 function calcularTrayectoriaUnaDimension(v, tTotal, a) {
@@ -80,7 +68,6 @@ function calcularTrayectoriaUnaDimension(v, tTotal, a) {
 
     return data;
 }
-
 
 // Función para calcular los puntos matemáticos en el movimiento en dos dimensiones
 function calcularTrayectoriaDosDimensiones(v0, anguloGrados, y0, tTotal) {
@@ -138,7 +125,7 @@ function calcularTrayectoriaDosDimensiones(v0, anguloGrados, y0, tTotal) {
 }
 
 // 3. Función para actualizar la gráfica con los nuevos datos
-function actualizarGrafica(seleccionado) {
+function actualizarGrafica() {
     // Obtener valores de los inputs
     const velocidadInicial = parseFloat(v0.value) || 0;
     const angle = parseFloat(angulo.value) || 0;
@@ -147,10 +134,18 @@ function actualizarGrafica(seleccionado) {
     const tiempo = parseFloat(t0.value) || 0;
 
     let puntosTrayectoria = [];
-    // Calcular los puntos
-    if (seleccionado === false) {
+
+    const movimiento = seleccion.value;
+
+    if (movimiento === "mru") {
+        puntosTrayectoria = calcularTrayectoriaUnaDimension(velocidadInicial, tiempo, 0);
+    } else if (movimiento === "mrua") {
         puntosTrayectoria = calcularTrayectoriaUnaDimension(velocidadInicial, tiempo, aceleracion);
-    } else {
+    } else if (movimiento === "caidaLibre") {
+        puntosTrayectoria = calcularTrayectoriaDosDimensiones(0, 90, altura, tiempo);
+    } else if (movimiento === "tiroSemiparabólico") {
+        puntosTrayectoria = calcularTrayectoriaDosDimensiones(velocidadInicial, angle, altura, tiempo);
+    } else if (movimiento === "tiroParabólico") {
         puntosTrayectoria = calcularTrayectoriaDosDimensiones(velocidadInicial, angle, altura, tiempo);
     }
 
@@ -190,13 +185,18 @@ function actualizarGrafica(seleccionado) {
         }]
     };
 
+    if (window.innerWidth < 768) {
+        const yOffset = -32; 
+        const element = document.querySelector('header');
+        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+        window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+
     // Pintar/Refrescar el gráfico
     myChart.setOption(option);
 
 }
-
-// 4. Escuchar eventos
-btnSimular.addEventListener('click', () => actualizarGrafica(seleccionado));
 
 // Cargar una trayectoria inicial al abrir la página
 actualizarGrafica();
